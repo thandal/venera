@@ -180,7 +180,7 @@ if _interactive: ## Load real data.
     import numpy as np
 
     # 1988:
-    filename = "venus_ocp_19880604_163910.img"  # First S (ever!)
+    #filename = "venus_ocp_19880604_163910.img"  # First S (ever!)
     #filename = "venus_ocp_19880620_144220.img"
     #filename = "venus_ocp_19880618_150330.img"
     #filename = "venus_ocp_19880617_151830.img"
@@ -192,7 +192,7 @@ if _interactive: ## Load real data.
     # 2012: used GBT, maybe avoid for now
 
     # 2015:
-    #filename = "venus_ocp_20150810_162629.img"  # First S
+    filename = "venus_ocp_20150810_162629.img"  # First S
     #filename = "venus_ocp_20150810_163623.img"  # Next S
     #filename = "venus_ocp_20150816_171104.img"  # Last S
     #filename = "venus_ocp_20150812_155242.img"  # First N
@@ -212,7 +212,10 @@ if _interactive: ## Load real data.
     #filename = 'venus_ocp_20120527_180159.img'  # Needs to be rolled up significantly
 #    filename = 'venus_ocp_19880605_175820.img'  # Weak signal?
 #    filename = 'venus_scp_19880604_163910.img'   # weak
-    filename = 'venus_scp_20200524_182906.img' #  weakish
+#    filename = 'venus_scp_20200524_182906.img' #  weakish
+
+    # Fit experiments
+    filename = 'venus_ocp_19880604_163910.img'
 
     # File format an 8191 * 8192 array of pixels, each pixel is a complex number represented by real, imaginary components stored as single-precision floats.
     # Early 1988 data files appear to be quite corrupt???
@@ -365,7 +368,7 @@ def coarseTuneRollup(img_a):
     c = np.roll(c, center_i)
     # Find the first big increase above the noise floor
     d = np.diff(c[c2 - 200:c2 + 1])
-    plt.plot(d, 'b-')
+    #plt.plot(d, 'b-')
     d_pre_std = np.std(d[:c2 - 100])  # std from samples *before* the spike
     first_i = np.argwhere(d > d_pre_std * 2)[0][0]
     # Roll the image up/down to put first onset at row 0
@@ -399,8 +402,8 @@ def finePreprocessDopperDelay(img_a):
 
 if _interactive:
     img_a = coarsePreprocessDopplerDelay(img)
-    best_roll = coarseTuneRollup(img)
-    img_a = np.roll(img_a, best_roll, axis=0)
+    best_rollup = coarseTuneRollup(img)
+    img_a = np.roll(img_a, best_rollup, axis=0)
     img_b = finePreprocessDopperDelay(img_a)
 
     if 1: # debug
@@ -408,7 +411,7 @@ if _interactive:
         #plt.imsave(filename + ".png", img_b)
         plt.figure(figsize=(16, 16))
         plt.axis('off')
-        plt.imshow(img_a, cmap='gray')
+        plt.imshow(img_b, cmap='gray')
 
     if 0: # debug
         from matplotlib import pyplot as plt
@@ -440,8 +443,8 @@ def coarseTuneRoll(img_b, lbl_dict, filename=None): # Coarse-tune the centering 
         img_h = img_b[3500:4500, :].copy()
     else:
         raise("Unknown GEO_BAUD", lbl_dict["GEO_BAUD"])
-    #for offset in range(-100, 101):  # HUGE range?
-    for offset in range(-50, 51):  # More sane range?
+    for offset in range(-100, 101):  # HUGE range?
+    #for offset in range(-50, 51):  # More sane range?
         img_tmp = np.roll(img_h, offset)
         #img_tmp = np.diff(img_tmp, axis=1, prepend=0)**2
         img_mirror = img_tmp[:, :1000] * np.fliplr(img_tmp[:, -1000:])
@@ -461,7 +464,7 @@ def coarseTuneRoll(img_b, lbl_dict, filename=None): # Coarse-tune the centering 
     return best_col_offset
     
 if _interactive:
-    best_col_offset = coarseTuneRoll(img_b, lbl_dict, filename)
+    best_col_offset = coarseTuneRoll(img_b, lbl_dict)
     print(f'{best_col_offset=}')
     img_b = np.roll(img_b, best_col_offset)
 
@@ -489,7 +492,7 @@ def fitDopplerDelayCurve(img_b, lbl_dict, filename=None):
     best_params = []
     for freq_offset in range(-3, 4):  # Small range because image has already been coarsely centered.
         for delay_offset in range(-3, 4):  # Small range because image has already been coarsely ranged.
-            for freq_scale in np.linspace(0.8, 1.2, 201):
+            for freq_scale in np.linspace(0.8, 1.4, 301):
                 cs = (c2 * freq_scale) * sin_dlon + (c2 + freq_offset)
                 rs = row_dist + delay_offset
                 rs = rs.astype('i')
@@ -505,6 +508,7 @@ def fitDopplerDelayCurve(img_b, lbl_dict, filename=None):
                     best_params = [freq_offset, delay_offset, freq_scale]
                     #print(score, freq_offset, delay_offset, freq_scale)
     if filename:
+        freq_offset, delay_offset, freq_scale = best_params
         cs = (c2 * freq_scale) * sin_dlon + (c2 + freq_offset)
         rs = row_dist + delay_offset
         rs = rs.astype('i')
@@ -516,7 +520,6 @@ def fitDopplerDelayCurve(img_b, lbl_dict, filename=None):
         img_h[rs[valid2], cs2[valid2]] = img_h.min() / 2
         img_h[rs[valid], cs[valid]] = img_h.max() * 2
         plt.imsave(f"{ROOT_PREFIX}/FIT_TRIAGE/{filename[:-4]}_fit_{freq_offset}_{delay_offset}_{freq_scale}.png", img_h, cmap='gray')
-
     return best_score, best_params
 
 if _interactive:
@@ -525,7 +528,7 @@ if _interactive:
     print(f'Best fit score: {best_fit_score:.4f}')
     print(f'Best fit parameters: {freq_offset}, {delay_offset}, {freq_scale:.4f}')
     
-    if 0:  # debug
+    if 1:  # debug
         c2 = img_b.shape[1] / 2
         _radius_km = 6051.8
         _row_dist_km = 299792.46 * lbl_dict['GEO_BAUD'] * 1e-6 / 2 # km  Note: row is *round-trip-time* (double distance)
@@ -544,10 +547,10 @@ if _interactive:
             #img_h[rs[valid], cs[valid]] = img_h.max()
             img_h[rs[valid2], cs2[valid2]] = img_h.min() / 2
             img_h[rs[valid], cs[valid]] = img_h.max() * 2
-            #plt.figure(figsize=(16, 16))
-            #plt.axis('off')
-            #plt.imshow(img_h, cmap='gray', interpolation='none')
-            plt.imsave(f"{ROOT_PREFIX}/FIT_TRIAGE/{filename[:-4]}_fit.png", img_h, cmap='gray')
+            plt.figure(figsize=(16, 16))
+            plt.axis('off')
+            plt.imshow(img_h, cmap='gray', interpolation='none')
+            #plt.imsave(f"{ROOT_PREFIX}/FIT_TRIAGE/{filename[:-4]}_fit.png", img_h, cmap='gray')
         if 0: # Debug the curve fit.
             img_h = img_b.copy()
             #img_h = np.diff(img_c, axis=1, prepend=0)**2
@@ -745,6 +748,14 @@ for filename in filenames:
     r = int(filename[31:].split('.')[0])
     ROLL_CACHE[filename[:25]] = r
 
+FIT_CACHE = {}
+filenames = os.listdir(ROOT_PREFIX + "FIT_GOOD/")
+for filename in filenames:
+    if not filename.endswith('.png'): continue
+    #params = [float(x) for x in filename[30:].split('.')[0].split("_")]
+    params = filename[30:-4].split("_")
+    FIT_CACHE[filename[:25]] = [int(params[0]), int(params[1]), float(params[2])]
+
 
 def processDopplerDelayImage(filename):
 
@@ -777,7 +788,8 @@ def processDopplerDelayImage(filename):
     best_roll = ROLL_CACHE[filename[:25]]  # Use cached roll
     img_b = np.roll(img_b, best_roll)
 
-    best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict, filename)
+    #best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict, filename)
+    best_fit_parameters = FIT_CACHE[filename[:25]]  # Use cached params
 
     ## Create new global map image and count image
     G = np.zeros((16000, 8000), dtype='f') # TODO: use a smaller data rep?
@@ -790,6 +802,7 @@ def processDopplerDelayImage(filename):
 
 
 # ## Batch and commandline processing...
+# 
 
 # In[ ]:
 
@@ -797,6 +810,14 @@ def processDopplerDelayImage(filename):
 #processDopplerDelayImage("venus_scp_20150811_174505.img")
 #processDopplerDelayImage("venus_ocp_20150816_171104.img")
 #processDopplerDelayImage("venus_ocp_19880617_151830.img")
+
+# Test global combination
+G = np.zeros((16000, 8000), dtype='f') # TODO: use a smaller data rep?
+Gc = np.zeros(G.shape, 'int')
+processDopplerDelayImage("venus_scp_20150815_170058.img")
+processDopplerDelayImage("venus_scp_20170324_171055.img")
+Gm = np.divide(G, Gc, where=Gc>0)
+plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/pair.png", Gm.T[::1, ::1], origin='lower')
 
 
 # In[ ]:
