@@ -2,24 +2,29 @@
 # coding: utf-8
 
 # References:
-# * https://iopscience.iop.org/article/10.3847/PSJ/ac4f43/pdf
+# * https://iopscience.iop.org/article/10.3847/PSJ/ac4f43/pdf -- *Arecibo Radar Maps of Venus from 1988 to 2020 (overview paper)*
 # * https://pds-geosciences.wustl.edu/venus/arcb_nrao-v-rtls_gbt-3-delaydoppler-v1/vrm_90xx/document/venus_radar.pdf -- Level 1 doppler/dely data description
 # * https://pds-geosciences.wustl.edu/venus/urn-nasa-pds-venus_radar_level2/document/venus_radar_maps_user_guide.pdf -- Level 2 multi-look data description
 # * https://pubs.usgs.gov/of/1993/0516/report.pdf -- Venus Geologic Mappers' Handbook
+# * https://repository.si.edu/bitstream/handle/10088/3303/200737.pdf -- Details on the doppler/delay transformations
 # * https://echo.jpl.nasa.gov/asteroids/harmon.2002.long.code.pdf -- Details on the long-code doppler-delay method
 # 
 # Tools:
 # * https://ssd.jpl.nasa.gov/horizons/app.html#/ -- JPL Horizons web app
 # * https://astroquery.readthedocs.io/en/latest/jplhorizons/jplhorizons.html -- JPL Horizons Python API
+# * https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440_and_de441.pdf -- Ephemerides
+# * https://astropedia.astrogeology.usgs.gov/download/Docs/WGCCRE/WGCCRE2009reprint.pdf --  Report of the IAU Working Group on Cartographic Coordinates and Rotational Elements: 2009
+# * https://escholarship.org/content/qt2dn1012s/qt2dn1012s.pdf?t=pv3anr -- The mean rotation rate of Venus from 29 years of Earth-based radar observations (also describes doppler/delay transformation)
 # 
 # Maps:
+# * http://134.158.75.177/viewer/Apps/PlanetaryCesiumViewer/index.html?view=0%2C0%2C35255004%2C360%2C-90%2C0 -- with Venus lat/lon, etc.
 # * https://www.google.com/maps/space/venus/
 # * https://en.wikipedia.org/wiki/Mapping_of_Venus
 # * https://solarsystem.nasa.gov/resources/2342/venus-surface-3d-model/
 
 # ## Compute Apparent Rotation Angle (Doppler Angle)
 
-# In[ ]:
+# In[1]:
 
 
 from astropy import units as au
@@ -82,14 +87,14 @@ def apparentRotationAngle_poliastro(obstime):
     sky_AR = axis_BC.cross(axis_AR.cross(axis_BC))
     sky_AR /= sky_AR.norm()
 
-    # Calculate the angle differnce the two sky-projected axes
+    # Calculate the angle difference the two sky-projected axes
     sky_delta_angle = np.arccos(sky_NP.dot(sky_AR) / (sky_NP.norm() * sky_AR.norm()))
     if sky_delta_angle > 90 * au.deg: sky_delta_angle -= 180 * au.deg
     if sky_delta_angle < -90 * au.deg: sky_delta_angle += 180 * au.deg
     return sky_delta_angle
 
 
-# In[ ]:
+# In[2]:
 
 
 from astroquery.jplhorizons import Horizons
@@ -139,7 +144,7 @@ def apparentRotationAngle_horizons(obstime):
     sky_AR = vBC_pos.cross(axis_AR.cross(vBC_pos))
     sky_AR /= sky_AR.norm()
 
-    # Calculate the angle differnce the two sky-projected axes
+    # Calculate the angle difference the two sky-projected axes
     sky_delta_angle = np.arccos(sky_NP.dot(sky_AR) / (sky_NP.norm() * sky_AR.norm()))
     if sky_delta_angle > 90 * au.deg: sky_delta_angle -= 180 * au.deg
     if sky_delta_angle < -90 * au.deg: sky_delta_angle += 180 * au.deg
@@ -148,32 +153,32 @@ def apparentRotationAngle_horizons(obstime):
 
 # ## Arecibo Radar Data Processing
 
-# In[ ]:
+# In[3]:
 
 
 # ! pip3 install --upgrade --quiet astroquery
 
 
-# In[ ]:
+# In[4]:
 
 
 _interactive = True
 
 
-# In[ ]:
+# In[5]:
 
 
 _interactive = False
 
 
-# In[ ]:
+# In[6]:
 
 
 ROOT_PREFIX = "/mnt/c/Users/natha/Downloads/venus/arecibo_radar/pds-geosciences.wustl.edu/venus/arcb_nrao-v-rtls_gbt-3-delaydoppler-v1/vrm_90xx/"
 DATA_PREFIX = ROOT_PREFIX + "data/"
 
 
-# In[ ]:
+# In[7]:
 
 
 if _interactive: ## Load real data.
@@ -192,11 +197,13 @@ if _interactive: ## Load real data.
     # 2012: used GBT, maybe avoid for now
 
     # 2015:
-    filename = "venus_ocp_20150810_162629.img"  # First S
+    #filename = "venus_ocp_20150810_162629.img"  # First S
     #filename = "venus_ocp_20150810_163623.img"  # Next S
     #filename = "venus_ocp_20150816_171104.img"  # Last S
     #filename = "venus_ocp_20150812_155242.img"  # First N
     #filename = "venus_scp_20150815_172030.img"  # Last N
+    filename = "venus_ocp_20150812_155242.img" # Bruce parameter comparison
+    #filename = "venus_ocp_20150815_170058.img" # Bruce parameter comparison
 
     # 2017:
 
@@ -215,7 +222,7 @@ if _interactive: ## Load real data.
 #    filename = 'venus_scp_20200524_182906.img' #  weakish
 
     # Fit experiments
-    filename = 'venus_ocp_19880604_163910.img'
+    #filename = 'venus_ocp_19880604_163910.img'
 
     # File format an 8191 * 8192 array of pixels, each pixel is a complex number represented by real, imaginary components stored as single-precision floats.
     # Early 1988 data files appear to be quite corrupt???
@@ -223,11 +230,11 @@ if _interactive: ## Load real data.
     print(img.shape)
 
 
-# In[ ]:
+# In[8]:
 
 
 def parseLbl(filename):
-    lbl_filename = DATA_PREFIX + filename[:-4] + ".lbl"
+    lbl_filename = DATA_PREFIX + filename[:25] + ".lbl"
     l = {}
     for line in open(lbl_filename).readlines():
         if 'START_TIME' in line:
@@ -254,7 +261,7 @@ if _interactive:
     if lbl_dict['START_TIME'].startswith('1988'): img = np.fliplr(img)
 
 
-# In[ ]:
+# In[9]:
 
 
 if 0: # Cache: Lookup and cache the JPL Horizons ephemerides data at observartion start and stop.
@@ -285,7 +292,7 @@ if 0: # Cache: Lookup and cache the JPL Horizons ephemerides data at observartio
             open(cache_filename, 'wb'))
 
 
-# In[ ]:
+# In[10]:
 
 
 if 0: # debug: Compare North pole angle and SRP latitude
@@ -294,26 +301,49 @@ if 0: # debug: Compare North pole angle and SRP latitude
 
     NP_ANG_DEG = []
     NP_DIS_ARCSEC = []
+    SRP_LON_DEG = []
     SRP_LAT_DEG = []
+    DOP_ANG_DEG = []
     for f in os.listdir(DATA_PREFIX):
-        if not '2015' in f: continue
-        if not f.endswith('SRP.pkl'): continue
+        if not '1988' in f: continue
+        #if not '2015' in f: continue
+        #if not '2017' in f: continue
+        #if not '2020' in f: continue
+        if not f.endswith('horizons.pkl'): continue
+        lbl_dict = parseLbl(f)
+        if lbl_dict['GEO_POINTING'] != "N": continue
         SRP = pickle.load(open(DATA_PREFIX + f, 'rb'))
         eph = SRP['ephemerides']
         NP_ANG_DEG.append(eph['NPole_ang'][0])
         NP_DIS_ARCSEC.append(eph['NPole_dist'][0])
+        SRP_LON_DEG.append(eph['PDObsLon'][0])
         SRP_LAT_DEG.append(eph['PDObsLat'][0])
+        if 1: # debug: Compare apparent rotation angles
+            sky_delta_angle_poliastro = apparentRotationAngle_poliastro(SRP['start_astrotime'])
+            #sky_delta_angle_horizons = apparentRotationAngle_horizons(SRP['start_astrotime'])
+            #print(f'{sky_delta_angle_poliastro.to(au.deg)=}')
+            #print(f'{sky_delta_angle_horizons.to(au.deg)=}')
+            DOP_ANG_DEG.append(sky_delta_angle_poliastro.to(au.deg).value)
+            #DOP_ANG_DEG.append(sky_delta_angle_horizons.to(au.deg).value)
+        #print(SRP['start_astrotime'], eph['PDObsLon'][0], eph['PDObsLat'][0])
+    print(len(SRP_LON_DEG))
+    print(np.mean(SRP_LON_DEG))
+    print(np.mean(SRP_LAT_DEG))
 
 if 0:
     from matplotlib import pylab as plt
     #plt.plot(NP_DIS_ARCSEC)
-    plt.plot(NP_ANG_DEG)
+    #plt.plot(NP_ANG_DEG)
     #NP_ANG = np.array(NP_ANG)
     #plt.plot(np.where(NP_ANG > 180, NP_ANG - 360, NP_ANG))
     #plt.plot(SRP_LAT)
+    plt.hist(DOP_ANG_DEG)
+    plt.title('Histogram of doppler angles (degrees)')
+    plt.figure()
+    plt.plot(SRP_LON_DEG, SRP_LAT_DEG, "o")
 
 
-# In[ ]:
+# In[11]:
 
 
 if _interactive: ## Load cached SRP data
@@ -327,19 +357,15 @@ if _interactive: ## Load cached SRP data
     print(start_astrotime)
     print(f'{SRP_lon_deg=}')
     print(f'{SRP_lat_deg=}')
+    print(f"{eph['NPole_ang'][0]=}")
+    if 1:
+        sky_delta_angle_poliastro = apparentRotationAngle_poliastro(SRP['start_astrotime'])
+        print(f'{sky_delta_angle_poliastro.to(au.deg).value=}')
+        #sky_delta_angle_horizons = apparentRotationAngle_horizons(SRP['start_astrotime'])
+        #print(f'{sky_delta_angle_horizons.to(au.deg).value=}')
 
 
-# In[ ]:
-
-
-if 0: # debug: Compare apparent rotation angles
-    sky_delta_angle_poliastro = apparentAngle_poliastro(start_astrotime, SRP_lon_deg, SRP_lat_deg)
-    sky_delta_angle_horizons = apparentAngle_horizons(start_astrotime, SRP_lon_deg, SRP_lat_deg)
-    print(f'{sky_delta_angle_poliastro.to(au.deg)=}')
-    print(f'{sky_delta_angle_horizons.to(au.deg)=}')
-
-
-# In[ ]:
+# In[12]:
 
 
 def coarsePreprocessDopplerDelay(img):
@@ -426,7 +452,7 @@ if _interactive:
         plt.hist(img_b.ravel(), bins=50)
 
 
-# In[ ]:
+# In[13]:
 
 
 def coarseTuneRoll(img_b, lbl_dict, filename=None): # Coarse-tune the centering by rolling to maximize left-right symmetry
@@ -476,7 +502,7 @@ if _interactive:
         plt.imshow(img_b + np.fliplr(img_b), cmap='gray')
 
 
-# In[ ]:
+# In[14]:
 
 
 def fitDopplerDelayCurve(img_b, lbl_dict, filename=None):
@@ -570,7 +596,7 @@ if _interactive:
         
 
 
-# In[ ]:
+# In[15]:
 
 
 def setLLV(G, Gc, lon, lat, v):
@@ -579,10 +605,18 @@ def setLLV(G, Gc, lon, lat, v):
     r = (lon / (2 * np.pi) * G.shape[0]).astype('i')
     c = ((lat + np.pi / 2) / np.pi * G.shape[1]).astype('i')
     G[r, c] = v
+    Gc[r, c] = 1
+
+def addLLV(G, Gc, lon, lat, v):
+    # lon in [0, 2*pi)
+    # lat in [-pi/2, pi/2]
+    r = (lon / (2 * np.pi) * G.shape[0]).astype('i')
+    c = ((lat + np.pi / 2) / np.pi * G.shape[1]).astype('i')
+    G[r, c] += v
     Gc[r, c] += 1
 
 
-# In[ ]:
+# In[16]:
 
 
 if 0:  # Draw debug lines of latitude and longitude
@@ -607,7 +641,7 @@ if 0:
     setLLV(G, Gc, np.linspace(0, 359, 1000) / 180 * np.pi, np.linspace(66, 67, 1000) / 180 * np.pi, G.max())
 
 
-# In[ ]:
+# In[17]:
 
 
 if 0: # debug: derive the magic doppler angle scale (freq_scale factor)
@@ -615,7 +649,7 @@ if 0: # debug: derive the magic doppler angle scale (freq_scale factor)
     (-np.arccos(freq_scale/1.035) * au.radian).to(au.degree)
 
 
-# In[ ]:
+# In[18]:
 
 
 ## Project the doppler/delay image into lon/lat
@@ -625,7 +659,7 @@ import astropy.constants as acon
 import astropy.coordinates as ac
 import astropy.units as au
 
-def dopplerDelayToSphericalProjection(img_b, G, Gc, lbl_dict, SRP, fit_parameters):
+def dopplerDelayToSphericalProjection(img_b, G, Gc, lbl_dict, SRP, fit_parameters, fudge_deg=0):
     _radius_km = 6051.8
     _row_dist_km = 299792.46 * lbl_dict['GEO_BAUD'] * 1e-6 / 2 # km  Note: row is *round-trip-time* (double distance)
     freq_offset, delay_offset, freq_scale = fit_parameters
@@ -658,14 +692,7 @@ def dopplerDelayToSphericalProjection(img_b, G, Gc, lbl_dict, SRP, fit_parameter
     SRP_lat_deg = SRP['ephemerides']['PDObsLat'][0]
 
     if 0: # No SRP transform: as if the SRP were (0, 0)
-        setLLV(G, Gc, dlon_mesh[valid], dlat_mesh[valid], img_b[rs[valid], cs[valid]])
-
-    if 0: # Transformed to the SRP, no rotation.
-        # NOTE: this doesn't wrap latitude over the top... but that is probably ok given the max apparent inclination of
-        # Venus is only about 10 degrees.
-        p0 = ac.SkyCoord(SRP_lon_deg * au.deg, SRP_lat_deg * au.deg)
-        PP = p0.spherical_offsets_by(dlon_mesh * au.rad, dlat_mesh * au.rad)
-        setLLV(G, Gc, PP.data.lon.rad.ravel()[valid], PP.data.lat.rad.ravel()[valid], img_b[rs[valid], cs[valid]])
+        addLLV(G, Gc, dlon_mesh[valid], dlat_mesh[valid], img_b[rs[valid], cs[valid]])
 
     if 1: # Transformed to the SRP and rotated by the "doppler angle"
         # Convert to unit spheroid cartesian coordinates.
@@ -683,8 +710,9 @@ def dopplerDelayToSphericalProjection(img_b, G, Gc, lbl_dict, SRP, fit_parameter
                        (       -slon,         clon,    0),
                        (-clon * slat, -slon * slat, clat))) 
 
-        ## The D matrix rotates the coordinates about the x' = x'' axis by the Doppler angle:
-        doppler_ang = apparentRotationAngle_poliastro(start_astrotime)
+        ## The D matrix rotates the coordinates about the x axis by the apparent doppler angle:
+        doppler_ang = apparentRotationAngle_poliastro(start_astrotime) + fudge_deg * au.deg
+        #doppler_ang = apparentRotationAngle_horizons(start_astrotime) + fudge_deg * au.deg
         cnp = np.cos(doppler_ang.to(au.radian))
         snp = np.sin(doppler_ang.to(au.radian))
         D = np.matrix(((1,   0,    0),
@@ -696,7 +724,7 @@ def dopplerDelayToSphericalProjection(img_b, G, Gc, lbl_dict, SRP, fit_parameter
         # Convert back to lat/lon
         dlat_mesh = np.arcsin(X[2].A)[0]
         dlon_mesh = np.arctan2(X[1].A, X[0].A)[0]
-        setLLV(G, Gc, dlon_mesh[valid], dlat_mesh[valid], img_b[rs[valid], cs[valid]])
+        addLLV(G, Gc, dlon_mesh[valid], dlat_mesh[valid], img_b[rs[valid], cs[valid]])
 
 if _interactive:
     G = np.zeros((16000, 8000), dtype='f') # TODO: use a smaller data rep?
@@ -718,31 +746,33 @@ if _interactive:
         plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/{filename[:-4]}_global.png", Gm.T[::1, ::1], origin='lower')
 
 
-# In[ ]:
+# In[19]:
 
 
+## Full doppler/delay processing pipeline (with caching)
 from matplotlib import pylab as plt
 import numpy as np
 import os
 import pickle
 
 
-FILTER_PREFIX = ROOT_PREFIX + "ROLL_GOOD/"
-#FILTER_PREFIX = ROOT_PREFIX + "ROLL_BAD/"
+FILTER_PREFIX = ROOT_PREFIX + "ROLL_GOOD_NEW/"
 FILTER = set()
 filenames = os.listdir(FILTER_PREFIX)
 for filename in filenames:
     FILTER.add(filename[:25])
 
 ROLLUP_CACHE = {}
-filenames = os.listdir(ROOT_PREFIX + "ROLLUP_GOOD/")
+#filenames = os.listdir(ROOT_PREFIX + "ROLLUP_GOOD/")
+filenames = os.listdir(ROOT_PREFIX + "ROLLUP_GOOD_NEW/")
 for filename in filenames:
     if not filename.endswith('.png'): continue
     r = int(filename[33:].split('.')[0])
     ROLLUP_CACHE[filename[:25]] = r
 
 ROLL_CACHE = {}
-filenames = os.listdir(ROOT_PREFIX + "ROLL_GOOD/")
+#filenames = os.listdir(ROOT_PREFIX + "ROLL_GOOD/")
+filenames = os.listdir(ROOT_PREFIX + "ROLL_GOOD_NEW/")
 for filename in filenames:
     if not filename.endswith('.png'): continue
     r = int(filename[31:].split('.')[0])
@@ -757,13 +787,13 @@ for filename in filenames:
     FIT_CACHE[filename[:25]] = [int(params[0]), int(params[1]), float(params[2])]
 
 
-def processDopplerDelayImage(filename):
+def processDopplerDelayImage(filename, G, Gc, fudge_deg=0):
 
     if not filename[:25] in FILTER: return
 
     print('Processing', filename)
 
-    img = np.memmap(DATA_PREFIX + filename, dtype='<F', shape=(8191, 8192), mode='r')  # 'F' is complex single-precision: a complex number type of 2 32-bit precision floating-point numbers.
+    img = np.memmap(DATA_PREFIX + filename, dtype='<F', shape=(8191, 8192), mode='r')  # 'F' s complex single-precision: a complex number type of 2 32-bit precision floating-point numbers.
 
     lbl_dict = parseLbl(filename)
 
@@ -784,18 +814,18 @@ def processDopplerDelayImage(filename):
     img_b = finePreprocessDopperDelay(img_a)
 
     # Fourth, tune the symmetry (roll)
-    #best_roll = coarseTuneRoll(img, lbl_dict, filename)
+    #best_roll = coarseTuneRoll(img_b, lbl_dict, filename)
     best_roll = ROLL_CACHE[filename[:25]]  # Use cached roll
     img_b = np.roll(img_b, best_roll)
 
-    #best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict, filename)
-    best_fit_parameters = FIT_CACHE[filename[:25]]  # Use cached params
+    best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict, filename)
+    #best_fit_parameters = FIT_CACHE[filename[:25]]  # Use cached params
 
     ## Create new global map image and count image
     G = np.zeros((16000, 8000), dtype='f') # TODO: use a smaller data rep?
     Gc = np.zeros(G.shape, 'int')
 
-    dopplerDelayToSphericalProjection(img_b, G, Gc, lbl_dict, SRP, best_fit_parameters)
+    dopplerDelayToSphericalProjection(img_b, G, Gc, lbl_dict, SRP, best_fit_parameters, fudge_deg)
 
     Gm = np.divide(G, Gc, where=Gc>0)
     plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/{filename[:25]}.png", Gm.T[::1, ::1], origin='lower')
@@ -804,23 +834,31 @@ def processDopplerDelayImage(filename):
 # ## Batch and commandline processing...
 # 
 
-# In[ ]:
+# In[20]:
 
 
 #processDopplerDelayImage("venus_scp_20150811_174505.img")
 #processDopplerDelayImage("venus_ocp_20150816_171104.img")
 #processDopplerDelayImage("venus_ocp_19880617_151830.img")
 
-# Test global combination
-G = np.zeros((16000, 8000), dtype='f') # TODO: use a smaller data rep?
-Gc = np.zeros(G.shape, 'int')
-processDopplerDelayImage("venus_scp_20150815_170058.img")
-processDopplerDelayImage("venus_scp_20170324_171055.img")
-Gm = np.divide(G, Gc, where=Gc>0)
-plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/pair.png", Gm.T[::1, ::1], origin='lower')
+if 0: # Test global combination
+    file1 = "venus_scp_20150815_170058.img"
+    #file1 = "venus_ocp_19880617_150830.img"
+    file2 = "venus_scp_20150812_155242.img" 
+    #file3 = "venus_scp_20170324_171055.img"  # Appears to be ~0.2 degrees off?
+    for fudge_deg in (0.0,):
+    #for fudge_deg in (-0.5, -0.6):
+    #for fudge_deg in (0.1, -0.1, -0.2, -0.3, -0.4, -0.7):
+    #for fudge_deg in (-2, -1, 0, 1, 2):
+        G = np.zeros((16000, 8000), dtype='f') # TODO: use a smaller data rep?
+        Gc = np.zeros(G.shape, 'int')
+        processDopplerDelayImage(file1, G, Gc)
+        processDopplerDelayImage(file2, G, Gc, fudge_deg)
+        Gm = np.divide(G, Gc, where=Gc>0)
+        plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/pair_{file1[:25]}_{file2[:25]}_fudge_{fudge_deg}.png", Gm.T[::1, ::1], origin='lower')
 
 
-# In[ ]:
+# In[21]:
 
 
 if 0: ## Batch processing in notebook
@@ -833,7 +871,7 @@ if 0: ## Batch processing in notebook
         processDopplerDelayImage(filename)
 
 
-# In[ ]:
+# In[22]:
 
 
 ## Main function to allow being run from the command-line.
@@ -842,11 +880,14 @@ import sys
 if __name__ == '__main__' and "get_ipython" not in dir():  # Not imported, not run from Jupyter/IPython
     args = sys.argv[1:]
     #print('args', args)
-    processDopplerDelayImage(args[0])
+    ## Create new global map image and count image
+    G = np.zeros((16000, 8000), dtype='f') # TODO: use a smaller data rep?
+    Gc = np.zeros(G.shape, 'int')
+    processDopplerDelayImage(args[0], G, Gc)
     sys.exit()
 
 
-# In[ ]:
+# In[23]:
 
 
 ## Parallel magic.
