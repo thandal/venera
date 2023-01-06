@@ -24,7 +24,7 @@
 
 # ## Compute Apparent Rotation Angle (Doppler Angle)
 
-# In[1]:
+# In[ ]:
 
 
 from astropy import units as au
@@ -93,8 +93,37 @@ def apparentRotationAngle_poliastro(obstime):
     if sky_delta_angle < -90 * au.deg: sky_delta_angle += 180 * au.deg
     return sky_delta_angle
 
+def orthogonalVelocity_poliastro(obstime):
+    # Observer point (Arecibo) to ICRS posvel
+    o_coord = ac.EarthLocation.of_site('arecibo')
+    o_gcrs = o_coord.get_gcrs(obstime)
+    o_icrs = o_gcrs.transform_to(ac.ICRS())
 
-# In[2]:
+    # Venus Body Center
+    vBC_fixed = VenusFixed(obstime=obstime,
+                           x=0 * au.m, y=0 * au.m, z=0 * au.m,
+                           v_x=0 * au.m / au.s, v_y=0 * au.m / au.s, v_z=0 * au.m / au.s,
+                           representation_type='cartesian', differential_type='cartesian')
+    VenusICRS(obstime=obstime) # HACK WORKAROUND
+    vBC_o_icrs = vBC_fixed.transform_to(o_icrs)
+
+    dpos = vBC_o_icrs.cartesian.without_differentials() - o_icrs.cartesian.without_differentials()
+    dvel = vBC_o_icrs.velocity - o_icrs.velocity
+
+    dpos_m = dpos.xyz.to(au.m).value
+    range_m = np.sqrt(np.sum(dpos_m**2))
+    dvel_mps = dvel.d_xyz.to(au.m / au.s).value
+
+    # "Radial" and "Orthogonal" velocity
+    range_rate_mps = np.dot(dvel_mps, dpos_m / range_m)
+    ortho_mps = np.sqrt(sum(dvel_mps**2) - range_rate_mps**2)
+    #print(f'{range_m=}')
+    #print(f'{range_rate_mps=}')
+    #print(f'{ortho_mps=}')
+    return ortho_mps
+
+
+# In[ ]:
 
 
 from astroquery.jplhorizons import Horizons
@@ -153,32 +182,32 @@ def apparentRotationAngle_horizons(obstime):
 
 # ## Arecibo Radar Data Processing
 
-# In[3]:
+# In[ ]:
 
 
 # ! pip3 install --upgrade --quiet astroquery
 
 
-# In[4]:
+# In[ ]:
 
 
 _interactive = True
 
 
-# In[5]:
+# In[ ]:
 
 
 _interactive = False
 
 
-# In[6]:
+# In[ ]:
 
 
 ROOT_PREFIX = "/mnt/c/Users/natha/Downloads/venus/arecibo_radar/pds-geosciences.wustl.edu/venus/arcb_nrao-v-rtls_gbt-3-delaydoppler-v1/vrm_90xx/"
 DATA_PREFIX = ROOT_PREFIX + "data/"
 
 
-# In[7]:
+# In[ ]:
 
 
 if _interactive: ## Load real data.
@@ -230,7 +259,7 @@ if _interactive: ## Load real data.
     print(img.shape)
 
 
-# In[8]:
+# In[ ]:
 
 
 def parseLbl(filename):
@@ -261,7 +290,7 @@ if _interactive:
     if lbl_dict['START_TIME'].startswith('1988'): img = np.fliplr(img)
 
 
-# In[9]:
+# In[ ]:
 
 
 if 0: # Cache: Lookup and cache the JPL Horizons ephemerides data at observartion start and stop.
@@ -292,7 +321,7 @@ if 0: # Cache: Lookup and cache the JPL Horizons ephemerides data at observartio
             open(cache_filename, 'wb'))
 
 
-# In[10]:
+# In[ ]:
 
 
 if 0: # debug: Compare North pole angle and SRP latitude
@@ -343,7 +372,7 @@ if 0:
     plt.plot(SRP_LON_DEG, SRP_LAT_DEG, "o")
 
 
-# In[11]:
+# In[ ]:
 
 
 if _interactive: ## Load cached SRP data
@@ -365,7 +394,7 @@ if _interactive: ## Load cached SRP data
         #print(f'{sky_delta_angle_horizons.to(au.deg).value=}')
 
 
-# In[12]:
+# In[ ]:
 
 
 def coarsePreprocessDopplerDelay(img):
@@ -452,7 +481,7 @@ if _interactive:
         plt.hist(img_b.ravel(), bins=50)
 
 
-# In[13]:
+# In[ ]:
 
 
 def coarseTuneRoll(img_b, lbl_dict, filename=None): # Coarse-tune the centering by rolling to maximize left-right symmetry
@@ -502,7 +531,7 @@ if _interactive:
         plt.imshow(img_b + np.fliplr(img_b), cmap='gray')
 
 
-# In[14]:
+# In[ ]:
 
 
 def fitDopplerDelayCurve(img_b, lbl_dict, filename=None):
@@ -539,7 +568,8 @@ def fitDopplerDelayCurve(img_b, lbl_dict, filename=None):
         rs = row_dist + delay_offset
         rs = rs.astype('i')
         cs = cs.astype('i')
-        cs2 = np.where(cs < c2, cs - 2, cs + 2)
+        #cs2 = np.where(cs < c2, cs - 2, cs + 2)
+        cs2 = np.where(cs < c2, cs - 1, cs + 1)
         valid = (cs >= 0) & (cs < img_b.shape[1]) & (rs >= 0) & (rs < img_b.shape[0]) 
         valid2 = (cs2 >= 0) & (cs2 < img_b.shape[1]) & (rs >= 0) & (rs < img_b.shape[0])   
         img_h = img_b.copy() # Scratch image
@@ -596,7 +626,7 @@ if _interactive:
         
 
 
-# In[15]:
+# In[ ]:
 
 
 def setLLV(G, Gc, lon, lat, v):
@@ -616,7 +646,7 @@ def addLLV(G, Gc, lon, lat, v):
     Gc[r, c] += 1
 
 
-# In[16]:
+# In[ ]:
 
 
 if 0:  # Draw debug lines of latitude and longitude
@@ -641,15 +671,7 @@ if 0:
     setLLV(G, Gc, np.linspace(0, 359, 1000) / 180 * np.pi, np.linspace(66, 67, 1000) / 180 * np.pi, G.max())
 
 
-# In[17]:
-
-
-if 0: # debug: derive the magic doppler angle scale (freq_scale factor)
-    print(freq_scale)
-    (-np.arccos(freq_scale/1.035) * au.radian).to(au.degree)
-
-
-# In[18]:
+# In[ ]:
 
 
 ## Project the doppler/delay image into lon/lat
@@ -746,7 +768,7 @@ if _interactive:
         plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/{filename[:-4]}_global.png", Gm.T[::1, ::1], origin='lower')
 
 
-# In[19]:
+# In[ ]:
 
 
 ## Full doppler/delay processing pipeline (with caching)
@@ -756,23 +778,21 @@ import os
 import pickle
 
 
-FILTER_PREFIX = ROOT_PREFIX + "ROLL_GOOD_NEW/"
+FILTER_PREFIX = ROOT_PREFIX + "FIT_GOOD/"
 FILTER = set()
 filenames = os.listdir(FILTER_PREFIX)
 for filename in filenames:
     FILTER.add(filename[:25])
 
 ROLLUP_CACHE = {}
-#filenames = os.listdir(ROOT_PREFIX + "ROLLUP_GOOD/")
-filenames = os.listdir(ROOT_PREFIX + "ROLLUP_GOOD_NEW/")
+filenames = os.listdir(ROOT_PREFIX + "ROLLUP_GOOD/")
 for filename in filenames:
     if not filename.endswith('.png'): continue
     r = int(filename[33:].split('.')[0])
     ROLLUP_CACHE[filename[:25]] = r
 
 ROLL_CACHE = {}
-#filenames = os.listdir(ROOT_PREFIX + "ROLL_GOOD/")
-filenames = os.listdir(ROOT_PREFIX + "ROLL_GOOD_NEW/")
+filenames = os.listdir(ROOT_PREFIX + "ROLL_GOOD/")
 for filename in filenames:
     if not filename.endswith('.png'): continue
     r = int(filename[31:].split('.')[0])
@@ -828,13 +848,63 @@ def processDopplerDelayImage(filename, G, Gc, fudge_deg=0):
     dopplerDelayToSphericalProjection(img_b, G, Gc, lbl_dict, SRP, best_fit_parameters, fudge_deg)
 
     Gm = np.divide(G, Gc, where=Gc>0)
-    plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/{filename[:25]}.png", Gm.T[::1, ::1], origin='lower')
+    plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE_2/{filename[:25]}.png", Gm.T[::1, ::1], origin='lower')
+
+
+# In[ ]:
+
+
+if 0: # debug: Compare "orthogonal" velocity to freq_scale
+    FILENAME = []
+    FREQ_SCALE = []
+    ORTHO_VEL = []
+    GEO_BAUD = []
+    filenames = os.listdir(ROOT_PREFIX + "FIT_GOOD/")
+    for filename in filenames:
+        if not filename.endswith('.png'): continue
+        params = filename[30:-4].split("_")
+        lbl_dict = parseLbl(filename[:25])
+        SRP = pickle.load(open(DATA_PREFIX + filename[:25] + '_horizons.pkl', 'rb'))
+        start_astrotime = SRP['start_astrotime']
+
+        FILENAME.append(filename[:25])
+        FREQ_SCALE.append(float(params[2]))
+        GEO_BAUD.append(lbl_dict['GEO_BAUD'])
+        ORTHO_VEL.append(orthogonalVelocity_poliastro(start_astrotime))
+
+    FREQ_SCALE = np.array(FREQ_SCALE)
+    ORTHO_VEL = np.array(ORTHO_VEL)
+    GEO_BAUD = np.array(GEO_BAUD)
+
+if 0:
+    #plt.plot(FREQ_SCALE)
+    #plt.plot(ORTHO_VEL)
+    for y in ("1988", "2001", "2012", "2015", "2017", "2020"):
+    #for y in [f"201508{i:02d}" for i in range(10, 17)]:
+    #for y in [f"201703{i:02d}" for i in range(21, 28)]:
+        m = [f"_{y}" in x for x in FILENAME]
+        plt.plot(1 / FREQ_SCALE[m] * GEO_BAUD[m], ORTHO_VEL[m], '.', label=y)
+    plt.legend()
+    plt.title('Baud-corrected fit scale factor vs "orthogonal" velocity')
+
+# Baud rates (microseconds)
+# 1988 4.0 
+# 2001 4.2
+# 2012 3.8
+# 2015 3.8
+# 2017 3.9
+# 2020 3.8
+
+# All of the years line up nicely *except* 2015 and 2017, which seem to have a time-varying bias.
+# 2015 in particular has the same baud as 2012 and 2020.
+# Was there some approximate correction factor applied (incorrectly?) for 2015 and 2017?
+
 
 
 # ## Batch and commandline processing...
 # 
 
-# In[20]:
+# In[ ]:
 
 
 #processDopplerDelayImage("venus_scp_20150811_174505.img")
@@ -858,7 +928,7 @@ if 0: # Test global combination
         plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/pair_{file1[:25]}_{file2[:25]}_fudge_{fudge_deg}.png", Gm.T[::1, ::1], origin='lower')
 
 
-# In[21]:
+# In[ ]:
 
 
 if 0: ## Batch processing in notebook
@@ -871,7 +941,7 @@ if 0: ## Batch processing in notebook
         processDopplerDelayImage(filename)
 
 
-# In[22]:
+# In[ ]:
 
 
 ## Main function to allow being run from the command-line.
@@ -887,7 +957,7 @@ if __name__ == '__main__' and "get_ipython" not in dir():  # Not imported, not r
     sys.exit()
 
 
-# In[23]:
+# In[ ]:
 
 
 ## Parallel magic.
@@ -908,3 +978,38 @@ get_ipython().system(' ls -1 *.img | xargs -n 1 -P 4 python3 /mnt/c/Users/natha/
 
 
 
+
+# ## Hunting down registration errors
+# 
+# There appears to be a significant amount of residual error when projecting the doppler/range images into global coordinates and then trying to stack them.
+# 
+# Campbell et al didn't try to chase down these errors (personal communication), and instead fit the images to known anchor points. (did they set up an under-constrained problem?). One interesting data point is that Campbell's fitted doppler angles are all around 10 degrees, whereas my doppler angles derived from ephemeris data is often as much as 20 degrees. Given the error characteristics of the ephemeris data (see discussion below), it does not seem plausible for there to be 10 degrees of error!
+# 
+# This seems unsatisfactory to me: the physics of this experiment are pretty clean, and so the projections should be 
+# 
+# There are two ways to hunt for the sources of error -- and it is likely that there are multiple. The first is to double-check the processing pipeline for mistakes. The second is to characterize the *expected* error due to each source and then compare these expectations with the actual observed error to see if it is fully explained.
+# 
+# # Known error sources
+# 1. My fit parameters. Specifically, sub-radar point range (called rollup and delay_offset in the code), range rate (called roll and freq_offset in the code), and doppler spreading (called freq_scale in the code). Due to unknown offsets used during the original data collection process, delay_offset and freq_offset parameters can't be absolutely determined, and must be calculated by fitting. On the other hand, they *should* be robust to fitting. Freq_scale on the other hand should be directly correlated with the "lateral" relative observer velocity.
+# 
+# [TODO: calculate expected freq_scale and compare with the fit results.]
+# 
+# [TODO: calculate expected projection error sensitivity due to errors in delay_offset and freq_offset)]
+# 
+# 2. The ephemeris projections. Both JPL Horizons and poliastro use the DE44X family. From https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440_and_de441.pdf, orbital position of Venus is estimated to have an rms residual of about 8 m. From https://escholarship.org/content/qt2dn1012s/qt2dn1012s.pdf?t=pv3anr, errors in the DE44X rotation rate for Venus amount to approximately 0.2 degrees over 30 years.
+# 
+# [NOTE: I don't yet have an estimate of error for the axis of Venus]
+# 
+# In general,
+# - error in the planetary position would result in projected errors in the SRP and thus joint lat/lon errors... but perhaps mostly in longitude.
+# - error in the rotation rate would result in projected errors in longitude.
+# - error in the polar axis would result in errors in latitude and doppler angle.
+# 
+# # Potential error sources
+# 1. My transformation code
+# 2. My doppler angle calculation code
+# 3. Some type of time error (wrong time zone? JD to TBD?)
+# 4. Some missing systematic correction factor, that is not included in the standard descriptions of the doppler/delay image processing pipeline.
+# 5. Some missing noise factor that can cause minute-to-minute, day-to-day, or year-to-year error. Examples could be perturbations due to atmospheric or magnetospheric conditions, issues with the radio telescope.
+# 
+# [TODO: one way to chase down possible noise factors is to look at the noise characteristics of the projected images, and see what sort of time constants the noise appears to have. If the noise is small minute-to-minute but large year-to-year, that helps us constrain the likely sources.]
