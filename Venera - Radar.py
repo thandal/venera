@@ -24,7 +24,7 @@
 
 # ## Compute Apparent Rotation Angle (Doppler Angle)
 
-# In[ ]:
+# In[1]:
 
 
 from astropy import units as au
@@ -123,7 +123,7 @@ def orthogonalVelocity_poliastro(obstime):
     return ortho_mps
 
 
-# In[ ]:
+# In[2]:
 
 
 from astroquery.jplhorizons import Horizons
@@ -182,32 +182,32 @@ def apparentRotationAngle_horizons(obstime):
 
 # ## Arecibo Radar Data Processing
 
-# In[ ]:
+# In[3]:
 
 
 # ! pip3 install --upgrade --quiet astroquery
 
 
-# In[ ]:
+# In[4]:
 
 
 _interactive = True
 
 
-# In[ ]:
+# In[5]:
 
 
 _interactive = False
 
 
-# In[ ]:
+# In[6]:
 
 
 ROOT_PREFIX = "/mnt/c/Users/natha/Downloads/venus/arecibo_radar/pds-geosciences.wustl.edu/venus/arcb_nrao-v-rtls_gbt-3-delaydoppler-v1/vrm_90xx/"
 DATA_PREFIX = ROOT_PREFIX + "data/"
 
 
-# In[ ]:
+# In[7]:
 
 
 if _interactive: ## Load real data.
@@ -259,7 +259,7 @@ if _interactive: ## Load real data.
     print(img.shape)
 
 
-# In[ ]:
+# In[8]:
 
 
 def parseLbl(filename):
@@ -290,7 +290,7 @@ if _interactive:
     if lbl_dict['START_TIME'].startswith('1988'): img = np.fliplr(img)
 
 
-# In[ ]:
+# In[9]:
 
 
 if 0: # Cache: Lookup and cache the JPL Horizons ephemerides data at observartion start and stop.
@@ -321,7 +321,7 @@ if 0: # Cache: Lookup and cache the JPL Horizons ephemerides data at observartio
             open(cache_filename, 'wb'))
 
 
-# In[ ]:
+# In[10]:
 
 
 if 0: # debug: Compare North pole angle and SRP latitude
@@ -372,7 +372,7 @@ if 0:
     plt.plot(SRP_LON_DEG, SRP_LAT_DEG, "o")
 
 
-# In[ ]:
+# In[11]:
 
 
 if _interactive: ## Load cached SRP data
@@ -394,7 +394,7 @@ if _interactive: ## Load cached SRP data
         #print(f'{sky_delta_angle_horizons.to(au.deg).value=}')
 
 
-# In[ ]:
+# In[12]:
 
 
 def coarsePreprocessDopplerDelay(img):
@@ -481,7 +481,7 @@ if _interactive:
         plt.hist(img_b.ravel(), bins=50)
 
 
-# In[ ]:
+# In[13]:
 
 
 def coarseTuneRoll(img_b, lbl_dict, filename=None): # Coarse-tune the centering by rolling to maximize left-right symmetry
@@ -531,7 +531,28 @@ if _interactive:
         plt.imshow(img_b + np.fliplr(img_b), cmap='gray')
 
 
-# In[ ]:
+# In[14]:
+
+
+def curveRowsAndCols(img_b, freq_offset, delay_offset, freq_scale, c2, sin_dlon, row_dist):
+    cs = (c2 * freq_scale) * sin_dlon + (c2 + freq_offset)
+    rs = row_dist + delay_offset
+    rs = rs.astype('i')
+    cs = cs.astype('i')
+    
+    ### Simple offset
+    #rs2 = rs
+    #cs2 = np.where(cs < c2, cs - 2, cs + 2)  # TODO: smarter kernel?
+
+    # Orthogonal offset
+    drs = np.diff(rs, append=rs[-1])
+    dcs = np.diff(cs, append=cs[-1])
+    cs2 = cs + np.clip(drs, -1, 1)
+    rs2 = rs - np.clip(dcs, -1, 1)
+
+    rs2 = rs2.astype('i')
+    cs2 = cs2.astype('i')
+    return rs, cs, rs2, cs2
 
 
 def fitDopplerDelayCurve(img_b, lbl_dict, filename=None):
@@ -543,48 +564,40 @@ def fitDopplerDelayCurve(img_b, lbl_dict, filename=None):
     sin_dlon = np.sin(dlon)
 
     # Grid search by looking for the best "edge"
-    best_score = 0
+    best_score = -np.inf
     best_params = []
-    for freq_offset in range(-3, 4):  # Small range because image has already been coarsely centered.
-        for delay_offset in range(-3, 4):  # Small range because image has already been coarsely ranged.
-            for freq_scale in np.linspace(0.8, 1.4, 301):
-                cs = (c2 * freq_scale) * sin_dlon + (c2 + freq_offset)
-                rs = row_dist + delay_offset
-                rs = rs.astype('i')
-                cs = cs.astype('i')
-                cs2 = np.where(cs < c2, cs - 2, cs + 2)  # TODO: smarter kernel?
-                row_start = 500 # NOTE: start at row_startto avoid bias due to extremely bright SRP return
-                row_end = 6000  # NOTE: end at row_end to avoid noise due to frequency wrapping
+    #for freq_offset in range(-3, 4):  # Small range because image has already been coarsely centered.
+    #    for delay_offset in range(-3, 4):  # Small range because image has already been coarsely ranged.
+    for freq_offset in range(-10, 11):  # larger range because image has already been coarsely centered.
+        for delay_offset in range(-10, 11):  # larger range because image has already been coarsely ranged.
+            for freq_scale in np.linspace(0.9, 1.4, 301):
+                rs, cs, rs2, cs2 = curveRowsAndCols(img_b, freq_offset, delay_offset, freq_scale, c2, sin_dlon, row_dist)
+                row_start = 500 # NOTE: start at row_start to avoid bias due to extremely bright SRP return
+                row_end = 8000  # NOTE: end at row_end to avoid noise due to frequency wrapping
                 valid = (cs >= 0) & (cs < img_b.shape[1]) & (rs >= row_start) & (rs < row_end)
-                valid2 = (cs2 >= 0) & (cs2 < img_b.shape[1]) & (rs >= row_start) & (rs < row_end)
-                score = sum(img_b[rs[valid], cs[valid]]) - sum(img_b[rs[valid2], cs2[valid2]])
+                valid2 = (cs2 >= 0) & (cs2 < img_b.shape[1]) & (rs2 >= row_start) & (rs2 < row_end)
+                score = sum(img_b[rs[valid], cs[valid]]) - sum(img_b[rs2[valid2], cs2[valid2]])
                 if score > best_score:
                     best_score = score
                     best_params = [freq_offset, delay_offset, freq_scale]
-                    #print(score, freq_offset, delay_offset, freq_scale)
     if filename:
         freq_offset, delay_offset, freq_scale = best_params
-        cs = (c2 * freq_scale) * sin_dlon + (c2 + freq_offset)
-        rs = row_dist + delay_offset
-        rs = rs.astype('i')
-        cs = cs.astype('i')
-        #cs2 = np.where(cs < c2, cs - 2, cs + 2)
-        cs2 = np.where(cs < c2, cs - 1, cs + 1)
+        rs, cs, rs2, cs2 = curveRowsAndCols(img_b, freq_offset, delay_offset, freq_scale, c2, sin_dlon, row_dist)
         valid = (cs >= 0) & (cs < img_b.shape[1]) & (rs >= 0) & (rs < img_b.shape[0]) 
-        valid2 = (cs2 >= 0) & (cs2 < img_b.shape[1]) & (rs >= 0) & (rs < img_b.shape[0])   
+        valid2 = (cs2 >= 0) & (cs2 < img_b.shape[1]) & (rs2 >= 0) & (rs2 < img_b.shape[0])   
         img_h = img_b.copy() # Scratch image
-        img_h[rs[valid2], cs2[valid2]] = img_h.min() / 2
+        img_h[rs2[valid2], cs2[valid2]] = img_h.min() / 2
         img_h[rs[valid], cs[valid]] = img_h.max() * 2
-        plt.imsave(f"{ROOT_PREFIX}/FIT_TRIAGE/{filename[:-4]}_fit_{freq_offset}_{delay_offset}_{freq_scale}.png", img_h, cmap='gray')
+        plt.imsave(f"{ROOT_PREFIX}/FIT_TRIAGE_3/{filename[:-4]}_fit_{freq_offset}_{delay_offset}_{freq_scale}.png", img_h, cmap='gray')
     return best_score, best_params
 
 if _interactive:
-    best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict)
+    best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict, "interactive" + filename)
     freq_offset, delay_offset, freq_scale = best_fit_parameters
     print(f'Best fit score: {best_fit_score:.4f}')
     print(f'Best fit parameters: {freq_offset}, {delay_offset}, {freq_scale:.4f}')
     
-    if 1:  # debug
+    if 0:  # debug
         c2 = img_b.shape[1] / 2
         _radius_km = 6051.8
         _row_dist_km = 299792.46 * lbl_dict['GEO_BAUD'] * 1e-6 / 2 # km  Note: row is *round-trip-time* (double distance)
@@ -598,7 +611,7 @@ if _interactive:
         valid = (cs >= 0) & (cs < img_b.shape[1]) & (rs >= 0) & (rs < img_b.shape[0]) 
         valid2 = (cs2 >= 0) & (cs2 < img_b.shape[1]) & (rs >= 0) & (rs < img_b.shape[0])   
 
-        if 1:  # Debug image
+        if 0:  # Debug image
             img_h = img_b.copy() # Scratch image
             #img_h[rs[valid], cs[valid]] = img_h.max()
             img_h[rs[valid2], cs2[valid2]] = img_h.min() / 2
@@ -606,7 +619,6 @@ if _interactive:
             plt.figure(figsize=(16, 16))
             plt.axis('off')
             plt.imshow(img_h, cmap='gray', interpolation='none')
-            #plt.imsave(f"{ROOT_PREFIX}/FIT_TRIAGE/{filename[:-4]}_fit.png", img_h, cmap='gray')
         if 0: # Debug the curve fit.
             img_h = img_b.copy()
             #img_h = np.diff(img_c, axis=1, prepend=0)**2
@@ -626,7 +638,7 @@ if _interactive:
         
 
 
-# In[ ]:
+# In[15]:
 
 
 def setLLV(G, Gc, lon, lat, v):
@@ -646,7 +658,7 @@ def addLLV(G, Gc, lon, lat, v):
     Gc[r, c] += 1
 
 
-# In[ ]:
+# In[16]:
 
 
 if 0:  # Draw debug lines of latitude and longitude
@@ -671,7 +683,7 @@ if 0:
     setLLV(G, Gc, np.linspace(0, 359, 1000) / 180 * np.pi, np.linspace(66, 67, 1000) / 180 * np.pi, G.max())
 
 
-# In[ ]:
+# In[17]:
 
 
 ## Project the doppler/delay image into lon/lat
@@ -768,10 +780,10 @@ if _interactive:
         plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/{filename[:-4]}_global.png", Gm.T[::1, ::1], origin='lower')
 
 
-# In[ ]:
+# In[18]:
 
 
-## Full doppler/delay processing pipeline (with caching)
+3# Full doppler/delay processing pipeline (with caching)
 from matplotlib import pylab as plt
 import numpy as np
 import os
@@ -819,8 +831,9 @@ def processDopplerDelayImage(filename, G, Gc, fudge_deg=0):
 
     SRP = pickle.load(open(DATA_PREFIX + filename[:-4] + '_horizons.pkl', 'rb'))
 
-    # HACK: 1988 data seems to have flipped doppler?
+    # HACK: 1988 and 2020 data seem to have flipped doppler?
     if lbl_dict['START_TIME'].startswith('1988'): img = np.fliplr(img)
+    if lbl_dict['START_TIME'].startswith('2020'): img = np.fliplr(img)
 
     # First do basic image processing: convert to magnitude from complex, and normalize.
     img_a = coarsePreprocessDopplerDelay(img)
@@ -838,8 +851,8 @@ def processDopplerDelayImage(filename, G, Gc, fudge_deg=0):
     best_roll = ROLL_CACHE[filename[:25]]  # Use cached roll
     img_b = np.roll(img_b, best_roll)
 
-    best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict, filename)
-    #best_fit_parameters = FIT_CACHE[filename[:25]]  # Use cached params
+    #best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict, filename)
+    best_fit_parameters = FIT_CACHE[filename[:25]]  # Use cached params
 
     ## Create new global map image and count image
     G = np.zeros((16000, 8000), dtype='f') # TODO: use a smaller data rep?
@@ -848,18 +861,20 @@ def processDopplerDelayImage(filename, G, Gc, fudge_deg=0):
     dopplerDelayToSphericalProjection(img_b, G, Gc, lbl_dict, SRP, best_fit_parameters, fudge_deg)
 
     Gm = np.divide(G, Gc, where=Gc>0)
-    plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE_2/{filename[:25]}.png", Gm.T[::1, ::1], origin='lower')
+    plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE_3/{filename[:25]}.png", Gm.T[::1, ::1], origin='lower')
 
 
-# In[ ]:
+# In[19]:
 
 
 if 0: # debug: Compare "orthogonal" velocity to freq_scale
     FILENAME = []
+    FREQ_OFFSET = []
+    DELAY_OFFSET = []
     FREQ_SCALE = []
     ORTHO_VEL = []
     GEO_BAUD = []
-    filenames = os.listdir(ROOT_PREFIX + "FIT_GOOD/")
+    filenames = os.listdir(ROOT_PREFIX + "FIT_TRIAGE_2/")
     for filename in filenames:
         if not filename.endswith('.png'): continue
         params = filename[30:-4].split("_")
@@ -868,43 +883,73 @@ if 0: # debug: Compare "orthogonal" velocity to freq_scale
         start_astrotime = SRP['start_astrotime']
 
         FILENAME.append(filename[:25])
+        FREQ_OFFSET.append(int(params[0]))
+        DELAY_OFFSET.append(int(params[1]))
         FREQ_SCALE.append(float(params[2]))
         GEO_BAUD.append(lbl_dict['GEO_BAUD'])
         ORTHO_VEL.append(orthogonalVelocity_poliastro(start_astrotime))
 
+    FREQ_OFFSET = np.array(FREQ_OFFSET)
+    DELAY_OFFSET = np.array(DELAY_OFFSET)
     FREQ_SCALE = np.array(FREQ_SCALE)
     ORTHO_VEL = np.array(ORTHO_VEL)
     GEO_BAUD = np.array(GEO_BAUD)
 
 if 0:
+    #plt.figure(figsize=(12,12))
     #plt.plot(FREQ_SCALE)
     #plt.plot(ORTHO_VEL)
     for y in ("1988", "2001", "2012", "2015", "2017", "2020"):
     #for y in [f"201508{i:02d}" for i in range(10, 17)]:
     #for y in [f"201703{i:02d}" for i in range(21, 28)]:
         m = [f"_{y}" in x for x in FILENAME]
+        #plt.plot(FREQ_OFFSET[m], '.', label=y)
+        #plt.plot(DELAY_OFFSET[m], '.', label=y)
+        #plt.plot(ORTHO_VEL[m], '.', label=y)
         plt.plot(1 / FREQ_SCALE[m] * GEO_BAUD[m], ORTHO_VEL[m], '.', label=y)
     plt.legend()
     plt.title('Baud-corrected fit scale factor vs "orthogonal" velocity')
-
-# Baud rates (microseconds)
-# 1988 4.0 
-# 2001 4.2
-# 2012 3.8
-# 2015 3.8
-# 2017 3.9
-# 2020 3.8
-
-# All of the years line up nicely *except* 2015 and 2017, which seem to have a time-varying bias.
-# 2015 in particular has the same baud as 2012 and 2020.
-# Was there some approximate correction factor applied (incorrectly?) for 2015 and 2017?
+#    plt.title('"orthogonal" velocity')
 
 
+# While the delay-offset and frequency-offset are likely not recoverable due to how the data files were created, the frequency-scale *should* be something we can calculate directly. The frequency-scale factor is directly related to the "orthogonal" velocity -- the component of Venus-to-observer motion that is perpendicular to the line between the two. The higher this orthogonal velocity, the higher the apparent velocity of the limbs, symmetrically.
+# 
+# We do need to correct the bandwidth for different years using their baud rate.
+# 
+# | Year | Baud rates (microseconds) |
+# | ---- | ------------------------- |
+# | 1988 | 4.0 |
+# | 2001 | 4.2 |
+# | 2012 | 3.8 |
+# | 2015 | 3.8 |
+# | 2017 | 3.9 |
+# | 2020 | 3.8 |
+# 
+# As a result, fit-frequency-scale / baud should be proportional to orthogonal velocity.
+# 
+# All of the years line up nicely *except* 2015 and 2017, which seem to have a time-varying bias. 2015 in particular has the same baud as 2012 and 2020.
+# Was there some approximate correction frequency-scale factor applied during the 2015 and 2017 observation seasons?
+# 
+# Another possiblity is that there is some sort of systematic fit error that is affecting only the 2015 and 2017 looks.
+# 
+# From "Arecibo Radar Maps of Venus from 1988 to 2020": 
+# "Two methods were used to compensate for the gross
+# Doppler shift between the observing station and Venus. For the
+# 1988 data, no compensation was applied during the observations,
+# so an optimum change in Doppler frequency with time was
+# derived using an autofocus technique during the correlation with
+# the PN code. For all later data, ephemerides provided by different
+# programs were used to impose a time-varying frequency shift to
+# place the subradar location on Venus at zero Doppler."
+# 
+# Taken all together, this does increase our confidence in the quality of the frequency-scale factor fit.
+# * The strong linear fit for all years *other* than 2015 and 2017 is directly encouraging
+# * The fact that 2015 and 2017 appear to follow some sort of curve gives confidence that the fit has low noise, though it does raise the question of the source of the curve.
 
 # ## Batch and commandline processing...
 # 
 
-# In[ ]:
+# In[20]:
 
 
 #processDopplerDelayImage("venus_scp_20150811_174505.img")
@@ -928,7 +973,7 @@ if 0: # Test global combination
         plt.imsave(f"{ROOT_PREFIX}/GLOBAL_TRIAGE/pair_{file1[:25]}_{file2[:25]}_fudge_{fudge_deg}.png", Gm.T[::1, ::1], origin='lower')
 
 
-# In[ ]:
+# In[21]:
 
 
 if 0: ## Batch processing in notebook
@@ -941,7 +986,7 @@ if 0: ## Batch processing in notebook
         processDopplerDelayImage(filename)
 
 
-# In[ ]:
+# In[22]:
 
 
 ## Main function to allow being run from the command-line.
@@ -957,7 +1002,7 @@ if __name__ == '__main__' and "get_ipython" not in dir():  # Not imported, not r
     sys.exit()
 
 
-# In[ ]:
+# In[23]:
 
 
 ## Parallel magic.
@@ -970,7 +1015,8 @@ get_ipython().system(' jupyter nbconvert --to python Venera\\ -\\ Radar.ipynb')
 ## 2. Run the .py in parallel (from the venus data directory):
 get_ipython().run_line_magic('cd', '$DATA_PREFIX')
 #! ls -1 *2017*.img | xargs -n 1 -P 4 python3 /home/than/My\ Drive/Colab\ Notebooks/Venera\ -\ Radar.py
-get_ipython().system(' ls -1 *.img | xargs -n 1 -P 4 python3 /mnt/c/Users/natha/code/venera/Venera\\ -\\ Radar.py')
+get_ipython().system(' ls -1 *2020*.img | xargs -n 1 -P 4 python3 /mnt/c/Users/natha/code/venera/Venera\\ -\\ Radar.py')
+#! ls -1 *.img | xargs -n 1 -P 4 python3 /mnt/c/Users/natha/code/venera/Venera\ -\ Radar.py
 
 
 # In[ ]:
@@ -992,7 +1038,7 @@ get_ipython().system(' ls -1 *.img | xargs -n 1 -P 4 python3 /mnt/c/Users/natha/
 # # Known error sources
 # 1. My fit parameters. Specifically, sub-radar point range (called rollup and delay_offset in the code), range rate (called roll and freq_offset in the code), and doppler spreading (called freq_scale in the code). Due to unknown offsets used during the original data collection process, delay_offset and freq_offset parameters can't be absolutely determined, and must be calculated by fitting. On the other hand, they *should* be robust to fitting. Freq_scale on the other hand should be directly correlated with the "lateral" relative observer velocity.
 # 
-# [TODO: calculate expected freq_scale and compare with the fit results.]
+# [DONE: calculate expected freq_scale and compare with the fit results.  -->  See analysis above.]
 # 
 # [TODO: calculate expected projection error sensitivity due to errors in delay_offset and freq_offset)]
 # 
@@ -1013,3 +1059,5 @@ get_ipython().system(' ls -1 *.img | xargs -n 1 -P 4 python3 /mnt/c/Users/natha/
 # 5. Some missing noise factor that can cause minute-to-minute, day-to-day, or year-to-year error. Examples could be perturbations due to atmospheric or magnetospheric conditions, issues with the radio telescope.
 # 
 # [TODO: one way to chase down possible noise factors is to look at the noise characteristics of the projected images, and see what sort of time constants the noise appears to have. If the noise is small minute-to-minute but large year-to-year, that helps us constrain the likely sources.]
+
+# 
