@@ -1,0 +1,4 @@
+matplotlib
+numpy
+astroquery
+poliastro>=0.18
