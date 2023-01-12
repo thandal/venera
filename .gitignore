@@ -1,6 +1,8 @@
 # Main data directory
 data_venus
 
+*.pkl
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
