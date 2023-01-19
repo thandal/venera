@@ -24,7 +24,7 @@
 # * https://en.wikipedia.org/wiki/Mapping_of_Venus
 # * https://solarsystem.nasa.gov/resources/2342/venus-surface-3d-model/
 
-# In[39]:
+# In[1]:
 
 
 from matplotlib import pyplot as pl
@@ -35,13 +35,13 @@ import pickle
 
 # ## Interactive script magic
 
-# In[40]:
+# In[2]:
 
 
 _interactive = True  # Skip the next cell if you want to run in interactive (cell-by-cell) mode!
 
 
-# In[41]:
+# In[3]:
 
 
 _interactive = False  # Automatically override _interactive to false if this notebook is run in batch mode!
@@ -49,14 +49,14 @@ _interactive = False  # Automatically override _interactive to false if this not
 
 # ## Main doppler/delay processing pipeline
 
-# In[42]:
+# In[4]:
 
 
 ROOT_PREFIX = "data_venus/arecibo_radar/pds-geosciences.wustl.edu/venus/arcb_nrao-v-rtls_gbt-3-delaydoppler-v1/vrm_90xx/"
 DATA_PREFIX = ROOT_PREFIX + "data/"
 
 
-# In[43]:
+# In[5]:
 
 
 if _interactive: ## Select filename
@@ -104,7 +104,7 @@ if _interactive: ## Select filename
 #    filename = 'venus_ocp_20200526_163545.img'
 
 
-# In[44]:
+# In[6]:
 
 
 # Function: Parse the .lbl metadata file
@@ -134,7 +134,7 @@ if _interactive:
     print(f'{lbl_dict=}')
 
 
-# In[45]:
+# In[7]:
 
 
 # Function: Poliastro-based doppler angle calculation
@@ -218,7 +218,7 @@ def apparentRotationAngleDelta_poliastro(obstime):
     return sky_delta_angle
 
 
-# In[46]:
+# In[8]:
 
 
 # Function: Poliastro-based doppler angle calculation -- DOPPLER EQUATOR METHOD
@@ -282,40 +282,7 @@ def apparentRotationAngleDelta_poliastro_DOPPLER_EQUATOR(obstime):
     return -sky_delta_angle
 
 
-# In[47]:
-
-
-def orthogonalVelocity_poliastro(obstime):
-    # Observer point (Arecibo) at observation time in ICRS frame
-    o_coord = ac.EarthLocation.of_site('arecibo')
-    o_gcrs = o_coord.get_gcrs(obstime)
-    o_icrs = o_gcrs.transform_to(ac.ICRS())
-
-    # Venus Body Center
-    vBC_fixed = VenusFixed(obstime=obstime,
-                           x=0 * au.m, y=0 * au.m, z=0 * au.m,
-                           v_x=0 * au.m / au.s, v_y=0 * au.m / au.s, v_z=0 * au.m / au.s,
-                           representation_type='cartesian', differential_type='cartesian')
-    VenusICRS(obstime=obstime) # WORKAROUND
-    vBC_o_icrs = vBC_fixed.transform_to(o_icrs)
-
-    dpos = vBC_o_icrs.cartesian.without_differentials() - o_icrs.cartesian.without_differentials()
-    dvel = vBC_o_icrs.velocity - o_icrs.velocity
-
-    dpos_m = dpos.xyz.to(au.m).value
-    range_m = np.sqrt(np.sum(dpos_m**2))
-    dvel_mps = dvel.d_xyz.to(au.m / au.s).value
-
-    # "Radial" and "Orthogonal" velocity
-    range_rate_mps = np.dot(dvel_mps, dpos_m / range_m)
-    ortho_rate_mps = np.sqrt(sum(dvel_mps**2) - range_rate_mps**2)
-    #print(f'{range_m=}')
-    #print(f'{range_rate_mps=}')
-    #print(f'{ortho_rate_mps=}')
-    return ortho_rate_mps
-
-
-# In[48]:
+# In[10]:
 
 
 def apparentRotationAngleDelta_poliastro_SEARCH(obstime):
@@ -394,7 +361,40 @@ def apparentRotationAngleDelta_poliastro_SEARCH(obstime):
     return da[max_i]
 
 
-# In[49]:
+# In[9]:
+
+
+def orthogonalVelocity_poliastro(obstime):
+    # Observer point (Arecibo) at observation time in ICRS frame
+    o_coord = ac.EarthLocation.of_site('arecibo')
+    o_gcrs = o_coord.get_gcrs(obstime)
+    o_icrs = o_gcrs.transform_to(ac.ICRS())
+
+    # Venus Body Center
+    vBC_fixed = VenusFixed(obstime=obstime,
+                           x=0 * au.m, y=0 * au.m, z=0 * au.m,
+                           v_x=0 * au.m / au.s, v_y=0 * au.m / au.s, v_z=0 * au.m / au.s,
+                           representation_type='cartesian', differential_type='cartesian')
+    VenusICRS(obstime=obstime) # WORKAROUND
+    vBC_o_icrs = vBC_fixed.transform_to(o_icrs)
+
+    dpos = vBC_o_icrs.cartesian.without_differentials() - o_icrs.cartesian.without_differentials()
+    dvel = vBC_o_icrs.velocity - o_icrs.velocity
+
+    dpos_m = dpos.xyz.to(au.m).value
+    range_m = np.sqrt(np.sum(dpos_m**2))
+    dvel_mps = dvel.d_xyz.to(au.m / au.s).value
+
+    # "Radial" and "Orthogonal" velocity
+    range_rate_mps = np.dot(dvel_mps, dpos_m / range_m)
+    ortho_rate_mps = np.sqrt(sum(dvel_mps**2) - range_rate_mps**2)
+    #print(f'{range_m=}')
+    #print(f'{range_rate_mps=}')
+    #print(f'{ortho_rate_mps=}')
+    return ortho_rate_mps
+
+
+# In[11]:
 
 
 # Function: JPL Horizons-based doppler angle calculation
@@ -446,7 +446,7 @@ def apparentRotationAngleDelta_horizons(obstime):
     return sky_delta_angle
 
 
-# In[50]:
+# In[12]:
 
 
 # Function: Load/fetch Horizons ephemeris data
@@ -501,7 +501,7 @@ if _interactive: # Load sub-radar point (SRP) data
         print(f"{np_dec_deg=}")
 
 
-# In[51]:
+# In[13]:
 
 
 if 0:
@@ -511,7 +511,7 @@ if 0:
     #print(apparentRotationAngleDelta_horizons(start_astrotime).to(au.deg))
 
 
-# In[52]:
+# In[14]:
 
 
 if 0: # Batch cache update: Lookup and cache ALL the JPL Horizons ephemerides data.
@@ -520,7 +520,7 @@ if 0: # Batch cache update: Lookup and cache ALL the JPL Horizons ephemerides da
         loadOrFetchHorizonsData(f)
 
 
-# In[53]:
+# In[15]:
 
 
 if 0: # debug: Compare ephemeris data
@@ -594,7 +594,7 @@ if 0: # debug
     pl.title("Az/El")
 
 
-# In[54]:
+# In[16]:
 
 
 if _interactive:  # Load doppler delay image
@@ -603,12 +603,12 @@ if _interactive:  # Load doppler delay image
     print(f"Loaded {filename}")
     print(f"{img.shape=}")
     
-    ## ??? HACK: 1988 and 2020 data seems to have flipped doppler!?
-    #if lbl_dict['START_TIME'].startswith('1988') or lbl_dict['START_TIME'].startswith('2020'):
-    #    img = np.fliplr(img)
+    # ??? HACK: 1988 and 2020 data seems to have flipped doppler!?
+    if lbl_dict['START_TIME'].startswith('1988') or lbl_dict['START_TIME'].startswith('2020'):
+        img = np.fliplr(img)
 
 
-# In[55]:
+# In[17]:
 
 
 # Function: first step of doppler delay image processing pipeline
@@ -636,7 +636,7 @@ if _interactive:
         pl.imshow(img_a, cmap='gray')
 
 
-# In[56]:
+# In[18]:
 
 
 # Function: second step of doppler delay image processing pipeline
@@ -675,7 +675,7 @@ if _interactive:
         pl.imshow(img_a, cmap='gray')
 
 
-# In[57]:
+# In[19]:
 
 
 # Function: third step of doppler delay image processing pipeline
@@ -722,7 +722,7 @@ if _interactive:
         pl.hist(img_b.ravel(), bins=50)
 
 
-# In[58]:
+# In[20]:
 
 
 # Function: fourth step of doppler delay image processing pipeline
@@ -769,7 +769,7 @@ if _interactive:
         pl.imshow(img_b + np.fliplr(img_b), cmap='gray')
 
 
-# In[59]:
+# In[21]:
 
 
 # Function: fit parameters to the doppler/delay image curve
@@ -844,7 +844,7 @@ if _interactive:
     print(f'Best fit parameters: {freq_offset}, {delay_offset}, {freq_scale:.4f}')
 
 
-# In[60]:
+# In[22]:
 
 
 # Function: spherical to planar projection utility functions
@@ -866,7 +866,7 @@ def addLLV(G, Gc, lon, lat, v):
     Gc[r, c] += 1
 
 
-# In[61]:
+# In[23]:
 
 
 if 0:  # debug: Draw debug lines of latitude and longitude
@@ -891,7 +891,7 @@ if 0:
     setLLV(G, Gc, np.linspace(0, 359, 1000) / 180 * np.pi, np.linspace(66, 67, 1000) / 180 * np.pi, G.max())
 
 
-# In[62]:
+# In[24]:
 
 
 ## Project the doppler/delay image into lon/lat
@@ -909,17 +909,15 @@ def dopplerDelayToSphericalProjection(img_b, G, Gc,
     # Omit "degraded data" regions due to
     # - high N/S ambiguity near the edges (first few degrees of latitude), and
     # - grazing angle (last few degrees of latitude and longitude)
-    #dlon = np.linspace(-85 / 180 * np.pi, 85 / 180 * np.pi, 8000)
-    dlon = np.linspace(-90 / 180 * np.pi, 90 / 180 * np.pi, 8000)  # HACK -- all of it
-    #if pointing == 'N':
-    #    #dlat = np.linspace(5 / 180 * np.pi, 85 / 180 * np.pi, 4000)  # Northern hemisphere
-    #else:
-    #    dlat = np.linspace(-85 / 180 * np.pi, -5 / 180 * np.pi, 4000)  # Southern hemisphere
-    dlat = np.linspace(-90 / 180 * np.pi, 90 / 180 * np.pi, 4000)  # HACK -- all of it
+    dlon = np.linspace(-85 / 180 * np.pi, 85 / 180 * np.pi, 8000)
+    if pointing == 'N':
+        dlat = np.linspace(5 / 180 * np.pi, 85 / 180 * np.pi, 4000)  # Northern hemisphere
+    else:
+        dlat = np.linspace(-85 / 180 * np.pi, -5 / 180 * np.pi, 4000)  # Southern hemisphere
     dlon_mesh, dlat_mesh = np.meshgrid(dlon, dlat)
 
     # Omit degraded data region within 7 deg of the SRP due to the very bright returns
-    mesh_valid = np.sqrt(dlat_mesh**2 + dlon_mesh**2) > (2 / 180 * np.pi)
+    mesh_valid = np.sqrt(dlat_mesh**2 + dlon_mesh**2) > (7 / 180 * np.pi)
     dlon_mesh = dlon_mesh[mesh_valid]
     dlat_mesh = dlat_mesh[mesh_valid]
 
@@ -992,7 +990,7 @@ if _interactive:
 
 # ## Full processing pipeline (non-interactive)
 
-# In[63]:
+# In[25]:
 
 
 # Full doppler/delay processing pipeline (with caching)
@@ -1038,28 +1036,28 @@ def processDopplerDelayImage(filename, G=None, Gc=None, time_error=0, srp_lon_er
     # TODO: implement time error in ephemeris...
     hdata = loadOrFetchHorizonsData(filename)
 
-    # HACK: 1988 and 2020 data seem to have flipped doppler!?
+    # ??? HACK: 1988 and 2020 data seem to have flipped doppler!?
     if lbl_dict['START_TIME'].startswith('1988') or lbl_dict['START_TIME'].startswith('2020'): img = np.fliplr(img)
 
     # First do basic image processing: convert to magnitude from complex, and normalize.
     img_a = coarsePreprocessImage(img)
 
     # Second, coarse tune the range (rollup)
-    #best_rollup = coarseTuneRollup(img_a, filename)
-    best_rollup = ROLLUP_CACHE[filename[:25]]  # Use cached rollup
+    best_rollup = coarseTuneRollup(img_a, filename)
+    #best_rollup = ROLLUP_CACHE[filename[:25]]  # Use cached rollup
     img_a = np.roll(img_a, best_rollup, axis=0)
 
     # Third, fine process (which requires a tuned rollup)
     img_b = finePreprocessImage(img_a, filename)
 
     # Fourth, tune the symmetry (roll)
-    #best_roll = coarseTuneRoll(img_b, lbl_dict['GEO_BAUD'], filename)
-    best_roll = ROLL_CACHE[filename[:25]]  # Use cached roll
+    best_roll = coarseTuneRoll(img_b, lbl_dict['GEO_BAUD'], filename)
+    #best_roll = ROLL_CACHE[filename[:25]]  # Use cached roll
     img_b = np.roll(img_b, best_roll)
 
-    #best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict['GEO_BAUD'], filename)
-    #freq_offset, delay_offset, freq_scale = best_fit_parameters
-    freq_offset, delay_offset, freq_scale = FIT_CACHE[filename[:25]]  # Use cached params
+    best_fit_score, best_fit_parameters = fitDopplerDelayCurve(img_b, lbl_dict['GEO_BAUD'], filename)
+    freq_offset, delay_offset, freq_scale = best_fit_parameters
+    #freq_offset, delay_offset, freq_scale = FIT_CACHE[filename[:25]]  # Use cached params
 
     standalone_image = G is None or Gc is None
     if standalone_image: # Create new global map image and count image
@@ -1143,19 +1141,18 @@ if __name__ == '__main__' and "get_ipython" not in dir():  # Not imported, not r
     sys.exit()
 
 
-# In[64]:
+# In[33]:
 
 
 ## Parallel self-running magic.
 # TODO: reduce memory usage to allow more parallel instantiations!
-cwd = os.getcwd()
-script = cwd + '/radar_images.py'
 
 ## 1. Convert to .py with (from "My Drive/Colab Notebooks" directory):
 get_ipython().system(' jupyter nbconvert --to python radar_images.ipynb')
 
 ## 2. Run the .py in parallel (from the venus data directory):
-get_ipython().system(' ls -1 $DATA_PREFIX/*2020*.img | xargs -n 1 basename | xargs -n 1 -P 4 python3 $script')
+#! ls -1 $DATA_PREFIX/*.img | xargs -n 1 basename | xargs -n 1 -P 4 python3 $script
+get_ipython().system(' ls -1 $DATA_PREFIX/*1988*.img | xargs -n 1 basename | xargs -n 1 -P 4 python3 radar_images.py')
 #! ls -1 *.img | xargs -n 1 -P 4 python3 ${cwd}/radar_images.py
 
 
@@ -1194,7 +1191,7 @@ get_ipython().system(' ls -1 $DATA_PREFIX/*2020*.img | xargs -n 1 basename | xar
 # 
 # [TODO: one way to chase down possible noise factors is to look at the noise characteristics of the projected images, and see what sort of time constants the noise appears to have. If the noise is small minute-to-minute but large year-to-year, that helps us constrain the likely sources.]
 
-# In[30]:
+# In[ ]:
 
 
 if 0: # debug: Compare "orthogonal" velocity to freq_scale
@@ -1276,7 +1273,7 @@ if 0:
 # * The strong linear fit for all years *other* than 2015 and 2017 is directly encouraging
 # * The fact that 2015 and 2017 appear to follow some sort of curve gives confidence that the fit has low noise, though it does raise the question of the source of the curve.
 
-# In[31]:
+# In[ ]:
 
 
 if 0: ## debug: Error experiment...

@@ -11,4 +11,3 @@ jupyter nbconvert --to python radar_images.ipynb
 #! ls -1 $DATA_PREFIX/*.img | xargs -n 1 basename | xargs -n 1 -P 4 python3 $script
 ls -1 $DATA_PREFIX/*1988*.img | xargs -n 1 basename | xargs -n 1 -P 4 python3 radar_images.py
 #! ls -1 *.img | xargs -n 1 -P 4 python3 ${cwd}/radar_images.py
-
