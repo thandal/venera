@@ -8,4 +8,5 @@ jupyter nbconvert --to python radar_images.ipynb
 
 ## 2. Run the .py in parallel:
 ## TODO: reduce memory usage to allow more parallel instantiations! (Can only run 4 with ~32 GB of RAM)
-ls -1 $DATA_PREFIX/*.img | xargs -n 1 basename | xargs -n 1 -P 4 python3 radar_images.py
+ls -1 $DATA_PREFIX/*_$1*.img | xargs -n 1 basename | xargs -n 1 -P 4 python3 radar_images.py
+#ls -1 $DATA_PREFIX/*_$1*.img | xargs -n 1 basename | parallel --ungroup --retries 5 -n 1 -P 8 python3 radar_images.py {}
