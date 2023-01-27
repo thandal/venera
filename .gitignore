@@ -1,6 +1,10 @@
 # Main data directory
 data_venus
 
+# Auto-generated file
+process_radar_images.py
+
+# Caches, etc
 *.pkl
 
 # Byte-compiled / optimized / DLL files
