@@ -1,4 +1,5 @@
-# Venera -- Venus Planetary Radar Doppler/Delay Image Processing
+# Venera : Venus Planetary Radar Astronomy
+## Doppler-Delay Image Processing
 Use `wget_venus_data.sh` to download data.
 Use the process_radar_images.ipynb notebook to do processing.
 
