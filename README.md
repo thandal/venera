@@ -7,7 +7,7 @@ WORK IN PROGRESS -- the code is still under development, and has been hacked up 
 - Use process_radar_images.ipynb to do processing (or use parallel_process_radar_images.sh to run it in parallel -- but you need a lot of memory!)
 - Use process_video.ipynb to assemble videos.
 
-## Data products
+## Preliminary Data Products
 
 - [High res projected videos (Google Drive)](https://drive.google.com/drive/folders/11YsTmb8AydKsmTp8NOlG0jSVC8TS2cPJ)
   - Example: [All 2015 observations combined (118 MB)](https://drive.google.com/file/d/11qP2Xkku4XNgmMXH052p0ebfdr-SKs_9)
