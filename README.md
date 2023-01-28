@@ -12,7 +12,7 @@ WORK IN PROGRESS -- the code is still under development, and has been hacked up 
 - [High res projected videos (Google Drive)](https://drive.google.com/drive/folders/11YsTmb8AydKsmTp8NOlG0jSVC8TS2cPJ)
   - Example: [All 2015 observations combined (118 MB)](https://drive.google.com/file/d/11qP2Xkku4XNgmMXH052p0ebfdr-SKs_9)
 - [Super-resolution projected photos (Google Drive)](https://drive.google.com/drive/folders/11WIMnZPHnMQXcip6fFitsQyXO6jqbWdo)
-  - Example: [Cumulative average, 1988-2020 2000x2000(5 MB)](https://drive.google.com/file/d/11d1ctpYEdp0TgNgoxYlh8hmKDqZ-8FUq)
+  - Example: [Cumulative average, 1988-2020 2000x2000 (5 MB)](https://drive.google.com/file/d/11d1ctpYEdp0TgNgoxYlh8hmKDqZ-8FUq)
 
 Example doppler-delay image:
 ![venus_ocp_20150813_161747_small.png](/figures/venus_ocp_20150813_161747_small.png)
