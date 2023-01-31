@@ -17,6 +17,8 @@ WORK IN PROGRESS -- the code is still under development, and has been hacked up 
   - Example: [Cumulative average, 1988-2020 2000x2000 (5 MB)](https://drive.google.com/file/d/11d1ctpYEdp0TgNgoxYlh8hmKDqZ-8FUq)
 - [Super-resolution projected photos (Google Drive)](https://drive.google.com/drive/folders/11WIMnZPHnMQXcip6fFitsQyXO6jqbWdo)
   - Example: [All 2015 observations combined (118 MB)](https://drive.google.com/file/d/11qP2Xkku4XNgmMXH052p0ebfdr-SKs_9)
+  
+Note: due to observational constraints, all observations are basically from one hemisphere of Venus (the side closest to the Earth at nearest approach).
 
 Example doppler-delay image:
 ![venus_ocp_20150813_161747_small.png](/figures/venus_ocp_20150813_161747_small.png)
