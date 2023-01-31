@@ -1,6 +1,10 @@
 # Venera : Venus Planetary Radar Astronomy
 ## Doppler-Delay Image Processing
 
+[Planetary Radar Astronomy](https://en.wikipedia.org/wiki/Radar_astronomy) is the use of active radar to map celestial bodies (the Moon, planets, asteroids). From 1988 to 2020, Arecibo intermittently mapped Venus, with [data archived here](https://pds-geosciences.wustl.edu/missions/venus_radar/index.htm) (citation: Bruce A. Campbell and Donald B. Campbell 2022 Planet. Sci. J. 3 55, doi:10.3847/PSJ/ac4f43.).
+
+The code in this repository is an exploration in processing this data, projecting it into Venus global coordinates, and combining multiple observations into videos or super-resolution images.
+
 WORK IN PROGRESS -- the code is still under development, and has been hacked up to produce various outputs.
 
 - Use `wget_venus_data.sh` to download data, for example `wget_venus_data.sh ocp_2015` to get all the OCP imgs from 2015. 
