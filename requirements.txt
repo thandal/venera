@@ -3,3 +3,4 @@ numpy
 astroquery
 poliastro>=0.18
 imageio
+tqdm
