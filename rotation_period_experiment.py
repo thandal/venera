@@ -1,5 +1,6 @@
-import os
 import numpy as np
+import subprocess
+import time
 
 filenames = (
     "/home/than/.local/lib/python3.10/site-packages/poliastro/core/fixed.TEMPLATE",
@@ -28,9 +29,16 @@ print(f"{RA=}")
 print(f"{DEC=}")
 print(len(R) * len(RA) * len(DEC))
 
+NUM_SUBPROCESSES = 4
+SUBPROCESSES = []
+
 for r in R:
     for ra in RA:
         for dec in DEC:
+            if len(SUBPROCESSES) >= NUM_SUBPROCESSES:
+                # Wait until the earliest subprocess is done
+                SUBPROCESSES.pop(0).communicate()
+
             # Kludge to manipulate the poliastro library
             for filename in filenames:
                 content = open(filename, "r").read()
@@ -39,6 +47,7 @@ for r in R:
                 content = content.replace("VENERA_ROT_PER", str(r))
                 new_filename = filename.replace("TEMPLATE", "py")
                 open(new_filename, "w").write(content)
-   
             # This code automatically skips images that have already been processed.
-            os.system("python3 process_radar_images.py")
+            s = subprocess.Popen("python3 process_radar_images.py", shell=True)
+            SUBPROCESSES.append(s)
+            time.sleep(2)  # Sleep a little to allow the subprocess to successfully import poliastro
