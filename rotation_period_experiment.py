@@ -8,17 +8,37 @@ filenames = (
 
 #R = np.concatenate((np.linspace(-243.01, -243.03, 101),
 #                    np.linspace(-243.019, -243.022, 101)))
-#R = np.linspace(-243.020, -243.023, 11)
-R = -243.02 + 0.0003 * np.arange(1, 6)
-#R = (243.01848398589195, )   # Official IAU value
+#R = np.linspace(-243.0185, -243.023, 46)
+#R = np.linspace(-243.021, -243.023, 21)
+#R = (-243.0185, )   # Official IAU value
+R = (-243.0208, )   # My best value (for 1988 to 2017)
 #print(R)
 
+RA = np.unique(np.concatenate((
+#    272.76 + np.linspace(-0.02, 0.02, 11),
+    272.74 + np.linspace(-0.02, 0.02, 11),
+    )))
+DEC = np.unique(np.concatenate((
+#    67.16 + np.linspace(-0.02, 0.02, 11),
+    67.18 + np.linspace(-0.02, 0.02, 11),
+    )))
+
+print(f"{R=}")
+print(f"{RA=}")
+print(f"{DEC=}")
+print(len(R) * len(RA) * len(DEC))
+
 for r in R:
-    # Kludge to manipulate the poliastro library
-    for filename in filenames:
-        content = open(filename, "r").read()
-        new_content = content.replace("VENERA_ROT_PER", str(r))
-        new_filename = filename.replace("TEMPLATE", "py")
-        open(new_filename, "w").write(new_content)
+    for ra in RA:
+        for dec in DEC:
+            # Kludge to manipulate the poliastro library
+            for filename in filenames:
+                content = open(filename, "r").read()
+                content = content.replace("VENERA_RA", str(ra))
+                content = content.replace("VENERA_DEC", str(dec))
+                content = content.replace("VENERA_ROT_PER", str(r))
+                new_filename = filename.replace("TEMPLATE", "py")
+                open(new_filename, "w").write(content)
    
-    os.system("python3 process_radar_images.py")
+            # This code automatically skips images that have already been processed.
+            os.system("python3 process_radar_images.py")
