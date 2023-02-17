@@ -16,11 +16,9 @@ R = (-243.0208, )   # My best value (for 1988 to 2017)
 #print(R)
 
 RA = np.unique(np.concatenate((
-#    272.76 + np.linspace(-0.02, 0.02, 11),
-    272.74 + np.linspace(-0.02, 0.02, 11),
+    272.76 + np.linspace(-0.02, 0.02, 11),
     )))
 DEC = np.unique(np.concatenate((
-#    67.16 + np.linspace(-0.02, 0.02, 11),
     67.18 + np.linspace(-0.02, 0.02, 11),
     )))
 
@@ -35,10 +33,10 @@ SUBPROCESSES = []
 for r in R:
     for ra in RA:
         for dec in DEC:
+            print(r, ra, dec)
             if len(SUBPROCESSES) >= NUM_SUBPROCESSES:
                 # Wait until the earliest subprocess is done
                 SUBPROCESSES.pop(0).communicate()
-
             # Kludge to manipulate the poliastro library
             for filename in filenames:
                 content = open(filename, "r").read()
@@ -50,4 +48,5 @@ for r in R:
             # This code automatically skips images that have already been processed.
             s = subprocess.Popen("python3 process_radar_images.py", shell=True)
             SUBPROCESSES.append(s)
-            time.sleep(2)  # Sleep a little to allow the subprocess to successfully import poliastro
+            # Sleep a little to allow the subprocess to successfully import poliastro
+            time.sleep(2)  
