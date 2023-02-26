@@ -12,14 +12,19 @@ filenames = (
 #R = np.linspace(-243.0185, -243.023, 46)
 #R = np.linspace(-243.021, -243.023, 21)
 #R = (-243.0185, )   # Official IAU value
-R = (-243.0208, )   # My best value (for 1988 to 2017)
-#print(R)
 
+#R = np.unique(np.concatenate((
+#    -243.020 + np.linspace(-0.002, 0.002, 81),
+#    )))
+#RA = (272.76, )  # Official IAU value
+#DEC = (67.16, )  # Official IAU value
+
+R = (-243.0208, )   # My best value for 1988 to 2017
 RA = np.unique(np.concatenate((
     272.76 + np.linspace(-0.02, 0.02, 11),
     )))
 DEC = np.unique(np.concatenate((
-    67.18 + np.linspace(-0.02, 0.02, 11),
+    67.16 + np.linspace(-0.02, 0.02, 11),
     )))
 
 print(f"{R=}")

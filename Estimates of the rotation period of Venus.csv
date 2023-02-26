@@ -1,0 +1,11 @@
+Reference,Average rotation period (days),Uncertainty (+/- days),Data source,Start (year),End (year),Time span (years),Maximum,Open,Close,Minimum,Average rotation period (days + 243)
+Shapiro et al. (1979),243.01,0.03,Earth-based,1964,1977,13,0.04,0.01,0.01,-0.02,0.01
+Slade et al. (1990),243.022,0.003,Goldstone,1972,1982,10,0.025,0.022,0.022,0.019,0.022
+Shapiro et al. (1990),243.026,0.006,Earth-based,1975,1983,8,0.032,0.026,0.026,0.02,0.026
+Davies et al. (1992),243.022,0.002,Earth-based,1972,1988,16,0.024,0.022,0.022,0.02,0.022
+Campbell et al. (2019),243.0212,0.0006,Earth-based,1988,2017,29,0.0218,0.0212,0.0212,0.0206,0.0212
+Margot et al. (2020),243.0226,0.0013,Earth-based,2006,2020,14,0.0239,0.0226,0.0226,0.0213,0.0226
+Davies et al. (1992),243.0185,0.0001,Magellan SAR,1990,1994,1.3,0.0186,0.0185,0.0185,0.0184,0.0185
+Davies et al. (1992),243.023,0.001,Venera/Magellan SAR,1983,1994,7,0.024,0.023,0.023,0.022,0.023
+Konopliv et al. (1999),243.0200,0.0002,Magellan gravity,1990,1994,2,0.0202,0.0200,0.0200,0.0198,0.0200
+Mueller et al. (2012),243.0228,0.002,VIRTIS/Magellan SAR,1990,2008,16,0.0248,0.0228,0.0228,0.0208,0.0228
