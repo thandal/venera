@@ -21,7 +21,7 @@ filenames = (
 
 R = (-243.0208, )   # My best value for 1988 to 2017
 RA = np.unique(np.concatenate((
-    272.76 + np.linspace(-0.02, 0.02, 11),
+    272.66 + np.linspace(-0.02, 0.02, 11),
     )))
 DEC = np.unique(np.concatenate((
     67.16 + np.linspace(-0.02, 0.02, 11),
