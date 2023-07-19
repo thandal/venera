@@ -1,4 +1,7 @@
 # Venera : Venus Planetary Radar Astronomy
+
+Writeup of results: [Amateur Estimates of the Rotational Elements of Venus using 32 years of Arecibo Planetary Radar](https://docs.google.com/document/d/18l8Y1FTjtgzgq0ohklEkboS9BqEBN5sGElGdCluKGRo)
+
 ## Doppler-Delay Image Processing
 
 [Planetary Radar Astronomy](https://en.wikipedia.org/wiki/Radar_astronomy) is the use of active radar to map celestial bodies (the Moon, planets, asteroids). From 1988 to 2020, Arecibo intermittently mapped Venus, with [data archived here](https://pds-geosciences.wustl.edu/missions/venus_radar/index.htm) (citation: Bruce A. Campbell and Donald B. Campbell 2022 Planet. Sci. J. 3 55, doi:10.3847/PSJ/ac4f43.).
