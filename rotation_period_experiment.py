@@ -20,8 +20,13 @@ filenames = (
 #DEC = (67.16, )  # Official IAU value
 
 R = (-243.0208, )   # My best value for 1988 to 2017
+# NOTE: 272.66 here was a typo for 272.76 (the IAU value, and the center of the
+# grid that produced the writeup's pole result of RA~272.776). venera's pole
+# sensitivity is only ~0.15 deg in Dec / ~1 deg in RA (registration-noise-limited),
+# so we cannot improve on the IAU pole (+-0.01 deg); adopt IAU. See
+# scripts/pole_sensitivity.py and REPORT.md sec 10.
 RA = np.unique(np.concatenate((
-    272.66 + np.linspace(-0.02, 0.02, 11),
+    272.76 + np.linspace(-0.02, 0.02, 11),
     )))
 DEC = np.unique(np.concatenate((
     67.16 + np.linspace(-0.02, 0.02, 11),

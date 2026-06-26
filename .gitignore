@@ -1,6 +1,14 @@
 # Main data directory
 data_venus
 
+# Local environment + SPICE kernels (symlinked from ../moon-radar; not part of the repo)
+.conda
+spice_kernels
+
+# Generated analysis outputs
+results/
+/tmp_venera/
+
 # Auto-generated file
 process_radar_images.py
 
